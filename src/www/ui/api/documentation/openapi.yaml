@@ -597,6 +597,52 @@ paths:
                 $ref: '#/components/schemas/Info'
         default:
           $ref: '#/components/responses/defaultResponse'
+  
+  /uploads/{id}/copyright:
+    parameters:
+      - name: id
+        required: true
+        description: Id of the upload
+        in: path
+        schema:
+          type: integer
+    get:
+      operationId: getCopyrightByUploadId
+      tags:
+        - Upload
+      summary: Get copyrights found by agent
+      description:
+        Returns the list of copyrights
+      responses:
+        '200':
+          description: Get copyrights
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadCopyrights'
+        '503':
+          description: >
+            The ununpack agent or queried agents have not started yet. Please
+            check the 'Look-at' header for more information.
+          headers:
+            'Look-at':
+              description: Contains the URL to get jobs for the given upload
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Info'
+        '412':
+          description: >
+            The agent has not been scheduled for the upload. Please check the
+            response message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Info'
+        default:
+          $ref: '#/components/responses/defaultResponse'
 
   /search:
     get:
@@ -1813,6 +1859,19 @@ components:
             example: "path/to/LICENSE"
           findings:
             $ref: '#/components/schemas/Findings'
+    UploadCopyrights:
+      type: array
+      items:
+        type: object
+        properties:
+          filePath:
+            description: Relative file path
+            type: string
+            example: "path/to/COPYRIGHT"
+          copyright:
+            description: Copyright findings for the file
+            type: array
+            example: "Copyright (C) 2017-2020 Free Software Foundation, Inc."
     UrlUpload:
       description: To create an upload from a URL
       type: object

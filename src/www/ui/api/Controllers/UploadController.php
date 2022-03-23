@@ -444,6 +444,49 @@ class UploadController extends RestController
     return $response->withJson($licenseList, 200);
   }
 
+   /**
+   * Get list of copyrights for given upload
+   *
+   * @param ResponseHelper $response
+   * @param array $args
+   * @return ResponseHelper
+   */
+  public function getUploadCopyright($request, $response, $args)
+  {
+    global $container;
+    $agentDao = $container->get('dao.agent');
+    $id = intval($args['id']);
+
+    $upload = $this->uploadAccessible($this->restHelper->getGroupId(), $id);
+    if ($upload !== true) {
+      return $response->withJson($upload->getArray(), $upload->getCode());
+    }
+    $adj2nest = $this->isAdj2nestDone($id, $response);
+    if ($adj2nest !== true) {
+      return $adj2nest;
+    }
+    $agentName = "copyright";
+    $error = null;
+    $scanProx = new ScanJobProxy($agentDao, $id);
+    $agents = $scanProx->createAgentStatus([$agentName]);
+
+    foreach ($agents as $agent) {
+      if (! array_key_exists('currentAgentId', $agent)) {
+        $error = new Info(412, "Agent " . $agent["agentName"] . " not scheduled for the upload. Please POST to /jobs",InfoType::ERROR);
+      } else if (array_key_exists('isAgentRunning', $agent) &&
+        $agent['isAgentRunning']) {
+        $error = new Info(503, "Agent " . $agent["agentName"] . " is running. " . "Please check job status at /api/v1/jobs?upload=" . $id, InfoType::INFO);
+      }
+      if ($error !== null) {
+        return $response = $response->withJson($error->getArray(), $error->getCode());
+      }
+    }
+
+    $uploadHelper = new UploadHelper();
+    $copyrightList = $uploadHelper->getUploadCopyrightList($id);
+    return $response->withJson($copyrightList, 200);
+  }
+
   /**
    * Update an upload
    *

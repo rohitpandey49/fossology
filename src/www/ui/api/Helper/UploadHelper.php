@@ -630,4 +630,43 @@ class UploadHelper
     }
     return $responseList;
   }
+
+  /**
+     * Get the copyright list for given upload
+     * @param integer $uploadId        Upload ID
+     * @return array List of copyrights
+  */
+  public function getUploadCopyrightList($uploadId)
+  {
+    global $container;
+    global $SysConf;
+    $restHelper = $container->get('helper.restHelper');
+    $uploadDao = $restHelper->getUploadDao();
+    $uploadTreeTableName = $uploadDao->getUploadtreeTableName($uploadId);
+    $parent = $uploadDao->getParentItemBounds($uploadId, $uploadTreeTableName);
+
+    /** @var UIExportList $copyrightListObj
+     * UIExportList object to get copyright
+     */
+    $copyrightListObj = $restHelper->getPlugin('export-list');
+    $NomostListNum = @$SysConf['SYSCONFIG']['NomostListNum'];
+    $copyrightList = $copyrightListObj->getCopyrights($uploadId,
+    $parent->getItemId(), $uploadTreeTableName, $NomostListNum, '');
+    if (array_key_exists("warn", $copyrightList)) {
+      unset($copyrightList["warn"]);
+    }
+    
+    $responseList = array();
+    foreach ($copyrightList as $copyFilepath) {
+      $copyrightContent = array();
+      array_push($copyrightContent,$copyFilepath['content']);
+      $findings = new Findings();
+      $findings->setCopyright($copyrightContent);
+      $responseRow = array();
+      $responseRow['filePath'] = $copyFilepath['filePath'];
+      $responseRow['copyright'] = $findings->getCopyright();
+      $responseList[] = $responseRow;
+    }
+    return $responseList;
+  }
 }
